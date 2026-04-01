@@ -230,6 +230,23 @@ export default {
       });
     }
 
+    // ── POST /generate ─────────────────────────────────────────
+    if (method === 'POST' && url.pathname === '/generate') {
+      try {
+        const { lang, mode } = await request.json() as { lang: string; mode: string };
+        const prompts: Record<string, Record<string, string>> = {
+          record: { en: 'Write a 60-second reading script about 150 words for voice cloning. Natural, emotional. No title.', it: 'Scrivi 150 parole da leggere per clonare la voce. Naturale, emotivo. Nessun titolo.', es: 'Escribe 150 palabras para clonar la voz. Natural, emotivo. Sin título.', fr: 'Écris 150 mots pour cloner la voix. Naturel, émouvant. Sans titre.', de: '150 Wörter zum Klonen der Stimme. Natürlich, emotional. Kein Titel.', pt: 'Escreva 150 palavras para clonar a voz. Natural, emotivo. Sem título.' },
+          message: { en: 'Write a 60-90 word farewell voice message from a parent to a child. Warm, honest, melancholic. No clichés. Start mid-thought. No title.', it: 'Scrivi 60-90 parole di addio da genitore a figlio. Caldo, malinconico. Niente cliché. Inizia a metà pensiero.', es: 'Escribe 60-90 palabras de despedida. Cálido, melancólico. Sin clichés. Empieza en medio de un pensamiento.', fr: 'Écris 60-90 mots d adieu. Chaleureux, mélancolique. Pas de clichés. Commence au milieu d une pensée.', de: '60-90 Wörter Abschied. Warm, wehmütig. Keine Klischees. Mitten im Gedanken beginnen.', pt: 'Escreva 60-90 palavras de despedida. Calorosa, melancólica. Sem clichês. Comece no meio de um pensamento.' }
+        };
+        const prompt = (prompts[mode] ?? prompts['message'])[lang] ?? prompts['message']['en'];
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400, messages: [{ role: 'user', content: prompt }] }) });
+        if (!claudeRes.ok) throw new Error(await claudeRes.text());
+        const d = await claudeRes.json() as { content: Array<{type:string;text:string}> };
+        const text = d.content.find(b => b.type === 'text')?.text ?? '';
+        return json({ text }, 200, origin);
+      } catch(e: unknown) { return err(e instanceof Error ? e.message : String(e), 500, origin); }
+    }
+
     return err('Not found', 404, origin);
   },
 };

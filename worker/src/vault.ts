@@ -4,6 +4,7 @@ export interface Env {
   VAULT:         DurableObjectNamespace;
   AUDIO_BUCKET:  R2Bucket;
   ELEVENLABS_API_KEY: string;
+  ANTHROPIC_API_KEY: string;
   FRONTEND_URL:  string;
 }
 
@@ -92,20 +93,21 @@ export class VaultObject extends DurableObject {
     const vault = rows[0];
 
     if (vault.unlock_type === 'date') {
-      if (!vault.is_unlocked) {
-        const unlockDate = new Date(vault.unlock_value);
-        const formatted  = unlockDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+      const now        = Date.now();
+      const unlockTime = new Date(vault.unlock_value).getTime();
+      if (now < unlockTime) {
+        const formatted = new Date(vault.unlock_value).toLocaleDateString('en-GB', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
         return { error: `This vault opens on ${formatted}. Come back then.` };
       }
-      // For date vaults, any code is accepted (or you can skip the code field)
+      // Data passata — procedi senza codice
     } else {
-      // code-based: compare directly (in production use a constant-time compare)
       if (vault.unlock_value !== code.trim().toLowerCase()) {
         return { error: 'Incorrect code. The vault remains sealed.' };
       }
     }
 
-    // Mark as unlocked if not already
     if (!vault.is_unlocked) {
       this.ctx.storage.sql.exec(
         `UPDATE vault SET is_unlocked = 1 WHERE vault_id = ?`, vaultId

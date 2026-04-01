@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostMortem — Your Voice, Beyond Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── RESET & BASE ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:        #0d0c0a;
+  --paper:      #f5f0e8;
+  --sepia:      #c8b89a;
+  --ash:        #7a7268;
+  --gold:       #b8965a;
+  --gold-pale:  #e8d9b8;
+  --red:        #8b2020;
+  --white:      #faf8f4;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-mono:  'Courier Prime', 'Courier New', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.7;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ── NOISE TEXTURE OVERLAY ────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.6;
+}
+
+/* ── INTRO / HERO ─────────────────────────────────────────────── */
+#intro {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#intro::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 80px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 2.5rem;
+  opacity: 0;
+  animation: fadeUp 1s 0.3s forwards;
+}
+
+h1 {
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  opacity: 0;
+  animation: fadeUp 1.2s 0.6s forwards;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+.subtitle {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: var(--sepia);
+  max-width: 480px;
+  font-style: italic;
+  opacity: 0;
+  animation: fadeUp 1s 1s forwards;
+}
+
+.divider-ornament {
+  margin: 3rem auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: fit-content;
+  opacity: 0;
+  animation: fadeUp 1s 1.3s forwards;
+}
+
+.divider-ornament span {
+  display: block;
+  width: 60px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+.divider-ornament i {
+  color: var(--gold);
+  font-style: normal;
+  font-size: 0.8rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeUp 1s 1.5s forwards;
+}
+
+/* ── BUTTONS ──────────────────────────────────────────────────── */
+.btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.9rem 2.2rem;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  background: transparent;
+}
+
+.btn-primary {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.btn-primary:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.btn-ghost {
+  border-color: var(--ash);
+  color: var(--ash);
+}
+
+.btn-ghost:hover {
+  border-color: var(--sepia);
+  color: var(--sepia);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── SECTIONS ─────────────────────────────────────────────────── */
+section {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.25;
+}
+
+h2 {
+  font-size: 2.8rem;
+  font-weight: 300;
+  line-height: 1.1;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+h2 em { font-style: italic; color: var(--gold); }
+
+/* ── STEP FLOW ────────────────────────────────────────────────── */
+#app {
+  background: #111009;
+  border-top: 1px solid rgba(184,150,90,0.15);
+  border-bottom: 1px solid rgba(184,150,90,0.15);
+}
+
+.steps-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  border-bottom: 1px solid rgba(184,150,90,0.12);
+  overflow-x: auto;
+}
+
+.step-tab {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 1.2rem 2rem;
+  color: var(--ash);
+  border-bottom: 2px solid transparent;
+  cursor: default;
+  white-space: nowrap;
+  transition: color 0.3s;
+}
+
+.step-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.step-tab.done {
+  color: var(--sepia);
+}
+
+/* ── STEP PANELS ──────────────────────────────────────────────── */
+.step-panel {
+  display: none;
+  padding: 3.5rem 2rem;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.step-panel.active { display: block; }
+
+/* ── FORMS ────────────────────────────────────────────────────── */
+.field {
+  margin-bottom: 1.8rem;
+}
+
+label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sepia);
+  margin-bottom: 0.6rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="password"],
+textarea {
+  width: 100%;
+  background: rgba(245,240,232,0.04);
+  border: 1px solid rgba(184,150,90,0.2);
+  color: var(--paper);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  padding: 0.9rem 1.1rem;
+  outline: none;
+  transition: border-color 0.3s;
+  resize: vertical;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--gold);
+  background: rgba(245,240,232,0.06);
+}
+
+textarea { min-height: 140px; }
+
+.hint {
+  font-size: 0.82rem;
+  color: var(--ash);
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+/* ── RADIO TOGGLE ─────────────────────────────────────────────── */
+.toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid rgba(184,150,90,0.2);
+  overflow: hidden;
+}
+
+.toggle-group label {
+  flex: 1;
+  text-align: center;
+  padding: 0.8rem;
+  cursor: pointer;
+  color: var(--ash);
+  border: none;
+  margin: 0;
+  letter-spacing: 0.15em;
+  font-size: 0.62rem;
+  transition: all 0.2s;
+}
+
+.toggle-group input[type="radio"] { display: none; }
+
+.toggle-group input:checked + label {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* ── RECORDER ─────────────────────────────────────────────────── */
+#recorder-area {
+  border: 1px solid rgba(184,150,90,0.2);
+  padding: 2.5rem;
+  text-align: center;
+  position: relative;
+  background: rgba(184,150,90,0.03);
+}
+
+#waveform {
+  height: 60px;
+  margin: 1.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.wave-bar {
+  width: 3px;
+  background: var(--gold);
+  border-radius: 2px;
+  opacity: 0.3;
+  transition: height 0.1s ease;
+  height: 4px;
+}
+
+.recording .wave-bar {
+  opacity: 1;
+  animation: waveAnim 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes waveAnim {
+  from { height: 4px; }
+  to   { height: var(--h, 40px); }
+}
+
+#rec-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--ash);
+  margin-top: 1rem;
+}
+
+#rec-status.active { color: var(--red); }
+#rec-status.done   { color: var(--gold); }
+
+.rec-timer {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  color: var(--paper);
+  margin: 0.5rem 0;
+  letter-spacing: 0.1em;
+}
+
+/* ── PROGRESS / FEEDBACK ──────────────────────────────────────── */
+.status-box {
+  border: 1px solid rgba(184,150,90,0.2);
+  padding: 1.2rem 1.5rem;
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--sepia);
+  display: none;
+}
+
+.status-box.visible { display: block; }
+.status-box.error { border-color: var(--red); color: #c97070; }
+.status-box.success { border-color: rgba(184,150,90,0.5); color: var(--gold); }
+
+.spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--gold);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── VAULT CARD ───────────────────────────────────────────────── */
+.vault-card {
+  border: 1px solid rgba(184,150,90,0.3);
+  padding: 2.5rem;
+  text-align: center;
+  background: rgba(184,150,90,0.04);
+  margin-top: 1.5rem;
+}
+
+.vault-id {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  word-break: break-all;
+}
+
+.vault-url {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--sepia);
+  margin-top: 0.8rem;
+  word-break: break-all;
+}
+
+/* ── VAULT PLAYER (open page) ─────────────────────────────────── */
+#vault-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.envelope {
+  width: 120px;
+  height: 80px;
+  border: 1px solid var(--gold);
+  margin: 0 auto 3rem;
+  position: relative;
+  opacity: 0;
+  animation: fadeUp 1s 0.5s forwards;
+}
+
+.envelope::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(135deg, transparent 49%, rgba(184,150,90,0.15) 50%),
+              linear-gradient(225deg, transparent 49%, rgba(184,150,90,0.15) 50%);
+}
+
+.envelope::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 55%;
+  background: linear-gradient(to top right, rgba(184,150,90,0.1) 50%, transparent 50%),
+              linear-gradient(to top left, rgba(184,150,90,0.1) 50%, transparent 50%);
+}
+
+#unlock-form { width: 100%; max-width: 420px; }
+
+.audio-player {
+  width: 100%;
+  max-width: 480px;
+  margin: 2rem auto 0;
+  display: none;
+}
+
+.audio-player.visible { display: block; }
+
+.play-btn {
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0 auto 1.5rem;
+  transition: all 0.3s;
+  background: transparent;
+  color: var(--gold);
+  font-size: 1.5rem;
+}
+
+.play-btn:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.audio-meta {
+  font-style: italic;
+  color: var(--sepia);
+  font-size: 1rem;
+}
+
+/* ── HOW IT WORKS ─────────────────────────────────────────────── */
+#how {
+  border-top: 1px solid rgba(184,150,90,0.08);
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.how-item {
+  padding: 2rem;
+  border: 1px solid rgba(184,150,90,0.1);
+  transition: border-color 0.3s;
+}
+
+.how-item:hover { border-color: rgba(184,150,90,0.35); }
+
+.how-num {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  color: rgba(184,150,90,0.2);
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+.how-item h3 {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+  color: var(--paper);
+}
+
+.how-item p {
+  font-size: 0.9rem;
+  color: var(--ash);
+  line-height: 1.6;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 3rem 2rem;
+  border-top: 1px solid rgba(184,150,90,0.1);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--ash);
+}
+
+footer a { color: var(--sepia); text-decoration: none; }
+footer a:hover { color: var(--gold); }
+
+/* ── ANIMATIONS ───────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  h1 { font-size: 3rem; }
+  h2 { font-size: 2rem; }
+  .step-tab { padding: 1rem 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     VAULT PAGE — shown when URL has ?vault=ID
+══════════════════════════════════════════════════════════════════ -->
+<div id="vault-page" style="display:none">
+  <div class="envelope" id="envelope-icon"></div>
+
+  <div class="eyebrow" style="opacity:1">A message was left for you</div>
+  <h1 style="font-size:clamp(2rem,6vw,4.5rem); opacity:1; margin-bottom:1rem">
+    Someone is<br><em>speaking to you</em><br>from the past.
+  </h1>
+
+  <div id="unlock-form">
+    <div id="vault-locked">
+      <p style="color:var(--ash); font-style:italic; margin-bottom:2rem; font-size:0.95rem">
+        This vault is protected. Enter the access code to open it.
+      </p>
+      <div class="field">
+        <label>Access Code</label>
+        <input type="password" id="vault-code-input" placeholder="Enter the code given to you">
+      </div>
+      <button class="btn btn-primary" onclick="unlockVault()" id="unlock-btn" style="width:100%">
+        Open the Vault
+      </button>
+      <div class="status-box" id="vault-status"></div>
+    </div>
+
+    <div class="audio-player" id="audio-player">
+      <p class="audio-meta" id="audio-from"></p>
+      <p class="audio-meta" style="font-size:0.8rem; color:var(--ash); margin:0.3rem 0 2rem" id="audio-date"></p>
+      <button class="play-btn" id="play-btn" onclick="togglePlay()">&#9654;</button>
+      <audio id="vault-audio" style="display:none"></audio>
+      <p style="font-family:var(--font-mono); font-size:0.65rem; letter-spacing:0.15em; color:var(--ash); margin-top:1rem" id="audio-msg-text"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MAIN PAGE
+══════════════════════════════════════════════════════════════════ -->
+<div id="main-page">
+
+  <!-- HERO -->
+  <section id="intro">
+    <div class="eyebrow">PostMortem &mdash; ElevenHacks × Cloudflare</div>
+    <h1>Your voice,<br><em>beyond time.</em></h1>
+    <p class="subtitle">Clone your voice. Record a message for someone you love. Set it to open on a date, or with a code. It waits — for as long as it takes.</p>
+    <div class="divider-ornament">
+      <span></span><i>&#10022;</i><span></span>
+    </div>
+    <div class="hero-cta">
+      <a href="#app" class="btn btn-primary">Leave a message</a>
+      <a href="#how" class="btn btn-ghost">How it works</a>
+    </div>
+  </section>
+
+  <!-- APP ─────────────────────────────────────────────────────── -->
+  <div id="app">
+    <div class="steps-nav">
+      <div class="step-tab active" id="tab-1">I. Clone Your Voice</div>
+      <div class="step-tab" id="tab-2">II. Write the Message</div>
+      <div class="step-tab" id="tab-3">III. Lock &amp; Seal</div>
+      <div class="step-tab" id="tab-4">IV. Your Vault</div>
+    </div>
+
+    <!-- STEP 1 — Clone Voice -->
+    <div class="step-panel active" id="panel-1">
+      <div class="section-label">Step one</div>
+      <h2>Clone your <em>voice.</em></h2>
+      <p style="color:var(--ash); margin-bottom:2.5rem; font-style:italic">
+        Record 60 seconds of clear speech. Read anything — a poem, a letter, a story.
+        Your voice will be preserved exactly as it is today.
+      </p>
+
+      <div id="recorder-area">
+        <div id="waveform">
+          <!-- bars generated by JS -->
+        </div>
+        <div class="rec-timer" id="rec-timer">0:00</div>
+        <div id="rec-status">Ready to record</div>
+        <div style="margin-top:1.5rem; display:flex; gap:1rem; justify-content:center; flex-wrap:wrap">
+          <button class="btn btn-primary" id="rec-start-btn" onclick="startRecording()">
+            Start Recording
+          </button>
+          <button class="btn btn-ghost" id="rec-stop-btn" onclick="stopRecording()" disabled>
+            Stop
+          </button>
+        </div>
+        <p class="hint" style="margin-top:1.2rem">Or upload an existing recording:</p>
+        <input type="file" id="audio-upload" accept="audio/*" style="display:none" onchange="handleUpload(event)">
+        <button class="btn btn-ghost" style="margin-top:0.8rem; font-size:0.65rem" onclick="document.getElementById('audio-upload').click()">
+          Upload Audio File
+        </button>
+      </div>
+
+      <div class="status-box" id="clone-status"></div>
+
+      <div style="margin-top:2rem; display:flex; justify-content:flex-end">
+        <button class="btn btn-primary" id="clone-btn" onclick="cloneVoice()" disabled>
+          Clone My Voice &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Write Message -->
+    <div class="step-panel" id="panel-2">
+      <div class="section-label">Step two</div>
+      <h2>Write the <em>message.</em></h2>
+      <p style="color:var(--ash); margin-bottom:2.5rem; font-style:italic">
+        Say what you've always meant to say. Your cloned voice will speak these words.
+      </p>
+
+      <div class="field">
+        <label>To (recipient's name)</label>
+        <input type="text" id="recipient-name" placeholder="Marco, Sophia, my daughter…">
+      </div>
+
+      <div class="field">
+        <label>Your message</label>
+        <textarea id="message-text" placeholder="Write what you want them to hear. Be honest. You have time."></textarea>
+        <p class="hint" id="char-count">0 characters</p>
+      </div>
+
+      <div style="display:flex; gap:1rem; justify-content:space-between; margin-top:2rem">
+        <button class="btn btn-ghost" onclick="goStep(1)">&larr; Back</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Set the Lock &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Lock & Seal -->
+    <div class="step-panel" id="panel-3">
+      <div class="section-label">Step three</div>
+      <h2>Lock &amp; <em>seal.</em></h2>
+      <p style="color:var(--ash); margin-bottom:2.5rem; font-style:italic">
+        Choose how and when this vault opens. Only then, your voice will be generated.
+      </p>
+
+      <div class="field">
+        <label>Unlock method</label>
+        <div class="toggle-group">
+          <input type="radio" name="unlock-type" id="type-date" value="date" checked>
+          <label for="type-date">On a specific date</label>
+          <input type="radio" name="unlock-type" id="type-code" value="code">
+          <label for="type-code">With a secret code</label>
+        </div>
+      </div>
+
+      <div class="field" id="date-field">
+        <label>Unlock date</label>
+        <input type="date" id="unlock-date">
+        <p class="hint">The vault opens automatically on this day.</p>
+      </div>
+
+      <div class="field" id="code-field" style="display:none">
+        <label>Secret code</label>
+        <input type="text" id="unlock-code" placeholder="Choose a word or phrase only they would know">
+        <p class="hint">Share this privately with your recipient.</p>
+      </div>
+
+      <div class="field">
+        <label>Your name (shown to recipient)</label>
+        <input type="text" id="sender-name" placeholder="Dad, Mum, Marco…">
+      </div>
+
+      <div class="status-box" id="seal-status"></div>
+
+      <div style="display:flex; gap:1rem; justify-content:space-between; margin-top:2rem">
+        <button class="btn btn-ghost" onclick="goStep(2)">&larr; Back</button>
+        <button class="btn btn-primary" id="seal-btn" onclick="sealVault()">
+          Generate &amp; Seal the Vault &#9670;
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 4 — Vault Created -->
+    <div class="step-panel" id="panel-4">
+      <div class="section-label">Vault sealed</div>
+      <h2>It is <em>waiting.</em></h2>
+      <p style="color:var(--ash); margin-bottom:2rem; font-style:italic">
+        Your voice has been preserved. Share the link below with your recipient.
+        It will open only when the time comes.
+      </p>
+
+      <div class="vault-card">
+        <p style="font-family:var(--font-mono); font-size:0.6rem; letter-spacing:0.25em; color:var(--ash); margin-bottom:1rem">VAULT LINK</p>
+        <div class="vault-url" id="vault-link-display">—</div>
+        <button class="btn btn-primary" style="margin-top:1.5rem" onclick="copyVaultLink()">
+          Copy Link
+        </button>
+      </div>
+
+      <div class="vault-card" id="code-reminder" style="display:none; margin-top:1rem; border-color: rgba(139,32,32,0.4)">
+        <p style="font-family:var(--font-mono); font-size:0.6rem; letter-spacing:0.25em; color:var(--ash); margin-bottom:0.8rem">REMINDER — SECRET CODE</p>
+        <p style="font-style:italic; color:var(--sepia); font-size:0.95rem">
+          Share the secret code <strong style="color:var(--paper)" id="code-display-reminder"></strong> privately with your recipient.<br>
+          <span style="font-size:0.8rem; color:var(--ash)">It is not stored in plain text. If lost, the vault cannot be reopened.</span>
+        </p>
+      </div>
+
+      <p style="margin-top:2.5rem; text-align:center; color:var(--ash); font-style:italic; font-size:0.9rem">
+        Want to leave another message?
+        <a href="#" onclick="resetAll(); return false;" style="color:var(--gold); text-decoration:none">Start again</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <h2>Voice. Time. <em>Memory.</em></h2>
+    <div class="how-grid">
+      <div class="how-item">
+        <div class="how-num">01</div>
+        <h3>Clone your voice</h3>
+        <p>60 seconds of audio. ElevenLabs captures your timbre, rhythm, every nuance.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-num">02</div>
+        <h3>Write a message</h3>
+        <p>Words you've always meant to say. Your cloned voice will speak them, exactly.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-num">03</div>
+        <h3>Seal with a lock</h3>
+        <p>A date in the future, or a secret code. The vault waits — sealed, inviolable.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-num">04</div>
+        <h3>They open it</h3>
+        <p>When the time comes, your voice plays. Just your voice, speaking to them.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>PostMortem &mdash; Built for <a href="https://hacks.elevenlabs.io" target="_blank">#ElevenHacks</a> &times; Cloudflare</p>
+    <p style="margin-top:0.5rem; opacity:0.5">Powered by <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a> &middot; <a href="https://cloudflare.com" target="_blank">Cloudflare Workers + Durable Objects</a></p>
+  </footer>
+
+</div><!-- /main-page -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════════ -->
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const WORKER_URL = 'https://postmortem-worker.YOUR_SUBDOMAIN.workers.dev'; // update after deploy
+
+// ── STATE ────────────────────────────────────────────────────────
+let mediaRecorder = null;
+let audioChunks   = [];
+let audioBlob     = null;
+let voiceId       = null;
+let recInterval   = null;
+let recSeconds    = 0;
+let isPlaying     = false;
+
+// ── ROUTING — vault page ─────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const vaultId = params.get('vault');
+
+if (vaultId) {
+  document.getElementById('main-page').style.display = 'none';
+  document.getElementById('vault-page').style.display = 'flex';
+  initVaultPage(vaultId);
+}
+
+// ── WAVEFORM BARS ────────────────────────────────────────────────
+(function buildWaveform() {
+  const wf = document.getElementById('waveform');
+  for (let i = 0; i < 40; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    b.style.setProperty('--h', (8 + Math.random() * 44) + 'px');
+    wf.appendChild(b);
+  }
+})();
+
+// ── STEP NAVIGATION ──────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.step-panel').forEach((p, i) => {
+    p.classList.toggle('active', i + 1 === n);
+  });
+  document.querySelectorAll('.step-tab').forEach((t, i) => {
+    t.classList.remove('active', 'done');
+    if (i + 1 === n) t.classList.add('active');
+    if (i + 1 < n)   t.classList.add('done');
+  });
+  document.getElementById('app').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── UNLOCK TYPE TOGGLE ───────────────────────────────────────────
+document.querySelectorAll('input[name="unlock-type"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const isDate = r.value === 'date';
+    document.getElementById('date-field').style.display = isDate ? '' : 'none';
+    document.getElementById('code-field').style.display = isDate ? 'none' : '';
+  });
+});
+
+// ── CHAR COUNTER ─────────────────────────────────────────────────
+document.getElementById('message-text').addEventListener('input', function() {
+  document.getElementById('char-count').textContent = this.value.length + ' characters';
+});
+
+// ── RECORDING ────────────────────────────────────────────────────
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks   = [];
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      document.getElementById('clone-btn').disabled = false;
+      setRecStatus('done', 'Recording complete — ready to clone');
+    };
+
+    mediaRecorder.start();
+    recSeconds = 0;
+    document.getElementById('rec-start-btn').disabled = true;
+    document.getElementById('rec-stop-btn').disabled  = false;
+    document.getElementById('waveform').classList.add('recording');
+    setRecStatus('active', '&#9679; Recording…');
+
+    recInterval = setInterval(() => {
+      recSeconds++;
+      const m = Math.floor(recSeconds / 60);
+      const s = String(recSeconds % 60).padStart(2, '0');
+      document.getElementById('rec-timer').textContent = `${m}:${s}`;
+      // animate bars
+      document.querySelectorAll('.wave-bar').forEach(b => {
+        b.style.setProperty('--h', (6 + Math.random() * 48) + 'px');
+      });
+    }, 1000);
+
+  } catch(e) {
+    setRecStatus('', 'Microphone access denied. Please upload a file instead.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  clearInterval(recInterval);
+  document.getElementById('rec-start-btn').disabled = false;
+  document.getElementById('rec-stop-btn').disabled  = true;
+  document.getElementById('waveform').classList.remove('recording');
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  audioBlob = file;
+  document.getElementById('clone-btn').disabled = false;
+  setRecStatus('done', `File loaded: ${file.name}`);
+}
+
+function setRecStatus(cls, msg) {
+  const el = document.getElementById('rec-status');
+  el.className = cls;
+  el.innerHTML = msg;
+}
+
+// ── CLONE VOICE ──────────────────────────────────────────────────
+async function cloneVoice() {
+  if (!audioBlob) return;
+  const btn = document.getElementById('clone-btn');
+  const status = document.getElementById('clone-status');
+
+  btn.disabled = true;
+  showStatus(status, '', '<span class="spinner"></span> Cloning your voice via ElevenLabs…');
+
+  try {
+    const fd = new FormData();
+    fd.append('audio', audioBlob, 'voice_sample.webm');
+
+    const res  = await fetch(`${WORKER_URL}/clone`, { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Clone failed');
+
+    voiceId = data.voice_id;
+    showStatus(status, 'success', '&#10003; Voice cloned successfully. Proceed to write your message.');
+    setTimeout(() => goStep(2), 1200);
+
+  } catch(e) {
+    showStatus(status, 'error', 'Error: ' + e.message);
+    btn.disabled = false;
+  }
+}
+
+// ── SEAL VAULT ───────────────────────────────────────────────────
+async function sealVault() {
+  const recipient = document.getElementById('recipient-name').value.trim();
+  const text      = document.getElementById('message-text').value.trim();
+  const sender    = document.getElementById('sender-name').value.trim();
+  const unlockType = document.querySelector('input[name="unlock-type"]:checked').value;
+  const unlockVal  = unlockType === 'date'
+    ? document.getElementById('unlock-date').value
+    : document.getElementById('unlock-code').value.trim();
+  const status = document.getElementById('seal-status');
+
+  if (!recipient || !text || !sender || !unlockVal) {
+    showStatus(status, 'error', 'Please fill in all fields.');
+    return;
+  }
+  if (!voiceId) {
+    showStatus(status, 'error', 'No voice clone found. Go back to step one.');
+    return;
+  }
+
+  const btn = document.getElementById('seal-btn');
+  btn.disabled = true;
+  showStatus(status, '', '<span class="spinner"></span> Generating your voice and sealing the vault…');
+
+  try {
+    const res = await fetch(`${WORKER_URL}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voice_id: voiceId, text, recipient, sender, unlock_type: unlockType, unlock_value: unlockVal })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to seal vault');
+
+    const vaultUrl = `${location.origin}?vault=${data.vault_id}`;
+    document.getElementById('vault-link-display').textContent = vaultUrl;
+
+    if (unlockType === 'code') {
+      document.getElementById('code-reminder').style.display = '';
+      document.getElementById('code-display-reminder').textContent = `"${unlockVal}"`;
+    }
+
+    goStep(4);
+
+  } catch(e) {
+    showStatus(status, 'error', 'Error: ' + e.message);
+    btn.disabled = false;
+  }
+}
+
+// ── VAULT PLAYER ─────────────────────────────────────────────────
+async function initVaultPage(id) {
+  try {
+    const res  = await fetch(`${WORKER_URL}/vault/${id}/status`);
+    const data = await res.json();
+    if (data.unlock_type === 'date' && data.is_unlocked) {
+      // auto-show unlock for date-based vaults
+      document.querySelector('#vault-locked p').textContent =
+        'This vault opened on its scheduled date. Enter the vault code to listen.';
+    }
+  } catch(e) { /* silent */ }
+}
+
+async function unlockVault() {
+  const code   = document.getElementById('vault-code-input').value.trim();
+  const status = document.getElementById('vault-status');
+  const btn    = document.getElementById('unlock-btn');
+
+  if (!code) { showStatus(status, 'error', 'Please enter the access code.'); return; }
+
+  btn.disabled = true;
+  showStatus(status, '', '<span class="spinner"></span> Verifying…');
+
+  try {
+    const res  = await fetch(`${WORKER_URL}/vault/${vaultId}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid code or vault not yet unlocked');
+
+    // show player
+    document.getElementById('vault-locked').style.display = 'none';
+    const player = document.getElementById('audio-player');
+    player.classList.add('visible');
+
+    document.getElementById('audio-from').textContent = `A message from ${data.sender}`;
+    document.getElementById('audio-date').textContent  = `Left on ${new Date(data.created_at).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' })}`;
+    document.getElementById('audio-msg-text').textContent = data.text || '';
+
+    const audio = document.getElementById('vault-audio');
+    audio.src   = data.audio_url;
+
+  } catch(e) {
+    showStatus(status, 'error', e.message);
+    btn.disabled = false;
+  }
+}
+
+function togglePlay() {
+  const audio = document.getElementById('vault-audio');
+  const btn   = document.getElementById('play-btn');
+  if (isPlaying) {
+    audio.pause();
+    btn.innerHTML = '&#9654;';
+    isPlaying = false;
+  } else {
+    audio.play();
+    btn.innerHTML = '&#9646;&#9646;';
+    isPlaying = true;
+    audio.onended = () => { btn.innerHTML = '&#9654;'; isPlaying = false; };
+  }
+}
+
+// ── COPY LINK ────────────────────────────────────────────────────
+function copyVaultLink() {
+  const url = document.getElementById('vault-link-display').textContent;
+  navigator.clipboard.writeText(url).then(() => alert('Link copied!'));
+}
+
+// ── RESET ────────────────────────────────────────────────────────
+function resetAll() {
+  voiceId = null; audioBlob = null;
+  document.getElementById('message-text').value = '';
+  document.getElementById('recipient-name').value = '';
+  document.getElementById('sender-name').value = '';
+  document.getElementById('rec-timer').textContent = '0:00';
+  setRecStatus('', 'Ready to record');
+  document.getElementById('clone-btn').disabled = true;
+  document.getElementById('rec-start-btn').disabled = false;
+  document.querySelectorAll('.status-box').forEach(b => b.classList.remove('visible','error','success'));
+  goStep(1);
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function showStatus(el, type, msg) {
+  el.className = 'status-box visible' + (type ? ' ' + type : '');
+  el.innerHTML = msg;
+}
+</script>
+</body>
+</html>
